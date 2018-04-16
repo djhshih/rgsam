@@ -11,7 +11,8 @@ bin/rgsam: rgsam.cpp
 check: rgsam.cpp
 	mkdir -p tmp
 	$(CXX) -coverage -O0 $? -o tmp/check
-	tmp/check || true
+	! tmp/check
+	! tmp/check fly
 	# test collect
 	tmp/check collect data/illumina-1.8.sam sample1 library1 tmp/illumina-1.8.sam.rg.txt
 	diff data/ans/illumina-1.8.sam.rg.txt tmp/illumina-1.8.sam.rg.txt
