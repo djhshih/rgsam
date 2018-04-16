@@ -121,6 +121,7 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
     ofstream rg_f(out_rg_fname);
     if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
     sam::write_read_groups(rg_f, rgs, sample, library, platform);
+    rg_f << "@CO\t" << "QF:" << format << endl;
     rg_f.close();
 }
 
@@ -144,6 +145,7 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
     ofstream rg_f(out_rg_fname);
     if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
     sam::write_read_groups(rg_f, rgs, sample, library, platform);
+    rg_f << "@CO\t" << "QF:" << format << endl;
     rg_f.close();
 }
 
@@ -179,6 +181,7 @@ void tag_sam_with_rg(const char* format, const char* in_fname, const char* rg_fn
 
     // write read-group header
     sam::write_read_groups(out_f, rgs);
+    out_f << "@CO\t" << "QF:" << format << endl;
     
     // process SAM entries
     while (true) {

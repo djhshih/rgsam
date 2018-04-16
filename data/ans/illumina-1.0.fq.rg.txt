@@ -1,3 +1,4 @@
 @RG	ID:HDBUS_1	PU:HDBUS_1	SM:sample1	LB:library1	PL:illumina
 @RG	ID:HWUSI_1	PU:HWUSI_1	SM:sample1	LB:library1	PL:illumina
 @RG	ID:HWUSI_6	PU:HWUSI_6	SM:sample1	LB:library1	PL:illumina
+@CO	QF:illumina-1.0
