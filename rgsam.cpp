@@ -141,7 +141,7 @@ int compare_qnames(const string& a, const string& b, bool natural) {
 
 size_t find_in_string(const string& x, char c, size_t pos, size_t n) {
     for (size_t i = 0; i < n; ++i) {
-        pos = x.find(c, pos);
+        pos = x.find(c, pos + 1);
         if (pos == string::npos) break;
     }
     return pos;
@@ -149,9 +149,11 @@ size_t find_in_string(const string& x, char c, size_t pos, size_t n) {
 
 void parse_opts(const string& x, list<sam_opt_field>& opts) {
     size_t pos = 0;
-    while (pos != string::npos) {
-        size_t end = x.find(sam_delim);
+    while (true) {
+        size_t end = x.find(sam_delim, pos);
         opts.push_back(sam_opt_field(x.substr(pos, end - pos)));
+        if (end == string::npos) break;
+        pos = end + 1;
     }
 }
 
@@ -285,8 +287,14 @@ bool read_read_groups(ifstream& f, map<string, string>& rgs) {
     return !rgs.empty();
 }
 
+void write_read_groups(ostream& f, const map<string, string>& rgs) {
+    for (map<string, string>::const_iterator it = rgs.begin(); it != rgs.end(); ++it) {
+        f << it->second << endl;
+    }
+}
+
 void write_read_groups(ostream& f, const set<string> rgs, char* sample, char* library) {
-    for (set<string>::iterator it = rgs.begin(); it != rgs.end(); ++it) {
+    for (set<string>::const_iterator it = rgs.begin(); it != rgs.end(); ++it) {
         f   << "@RG" << sam_delim
             << "ID:" << *it << sam_delim
             << "PU:" << *it << sam_delim
@@ -308,7 +316,7 @@ void collect_rg_from_sam(char* in_fname, char* sample, char* library, char* out_
 
         // skip header lines
         if (line[0] == '@') continue;
-    
+
         // infer read-group
         raw_sam_entry x; 
         if (!extract_raw_sam_entry(line, x)) break;
@@ -362,13 +370,16 @@ void tag_sam_with_rg(char* in_fname, char* rg_fname, char* out_sam_fname) {
         if (line[0] == '@') {
             // skip RG header line but copy other header lines verbatim
             if (line.find("@RG") != 0) {
-                out_f << line;
+                out_f << line << endl;
             }
             continue;
         } else {
             break;
         }
     }
+
+    // write read-group header
+    write_read_groups(out_f, rgs);
     
     // process SAM entries
     while (true) {
