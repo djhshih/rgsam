@@ -1,5 +1,6 @@
-CXX=g++
-CPPFLAGS=-O3
+CXX = g++
+CPPFLAGS = -O3
+DESTDIR ?= /usr/local
 
 all: bin/rgsam
 	
@@ -39,6 +40,9 @@ coverage: check
 
 test: check
 	
+
+install: bin/rgsam
+	install bin/rgsam $(DESTDIR)/bin
 
 clean:
 	rm -f bin/rgsam
