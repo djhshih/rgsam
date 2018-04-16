@@ -13,6 +13,9 @@ namespace sam {
 
 using namespace std;
 
+/**
+ * SAM optional field.
+ */
 struct opt_field {
     char tag[2];
     char type;
@@ -80,7 +83,9 @@ struct entry {
     list<opt_field> opts;
 };
 
-/// SAM entry where core fields are not parsed
+/**
+ * SAM entry whose core fields are not parsed.
+ */
 struct raw_entry {
     // raw core fields
     string core;
