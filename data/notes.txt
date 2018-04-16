@@ -1,0 +1,58 @@
+# Read name formats
+
+## Illumina 1.0
+
+Before Casava 1.4
+
+@<flowcell>-<instrument>:<lane>:<tile>:<x>:<y>#<sample number>/<pair>
+
+@HWUSI-EAS100R:6:73:941:1973#0/1
+
+
+## Illumina 1.4
+
+Since Casava 1.4
+
+@<flowcell>-<instrument>:<lane>:<tile>:<x>:<y>#<index sequence>/<pair>
+
+@HWUSI-EAS100R:6:73:941:1973#NNNNNN/1
+
+
+## Illumina 1.8
+
+Since Casava 1.8
+
+@<instrument>:<run>:<flowcell>:<lane>:<tile>:<x>:<y> <read>:<filtered>:<control number>:<index sequence>
+
+@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG
+
+
+## Illumina 2.17
+
+Since bcl2fastq 2.17 (on BaseSpace)
+
+@<instrument>:<run>:<flowcell>:<lane>:<tile>:<x>:<y> <read>:<filtered>:<control number>:<sample number>
+
+@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:2
+
+
+## Remarks
+
+Illumina Casava 1.8 was replaced by bcl2fastq 1.8.
+
+bcl2fastq 2.17+ is integrated into Illumina Basespace, which replaced index 
+sequence with sample number.
+
+
+# Broad
+
+Deriving ID and PU fields from read names
+Here we illustrate how to derive both ID and PU fields from read names as they are formed in the data produced by the Broad Genomic Services pipelines (other sequence providers may use different naming conventions). We break down the common portion of two different read names from a sample file. The unique portion of the read names that come after flow cell lane, and separated by colons, are tile number, x-coordinate of cluster and y-coordinate of cluster.
+
+H0164ALXX140820:2:1101:10003:23460
+H0164ALXX140820:2:1101:15118:25288
+Breaking down the common portion of the query names:
+
+H0164____________ #portion of @RG ID and PU fields indicating Illumina flow cell
+_____ALXX140820__ #portion of @RG PU field indicating barcode or index in a multiplexed run
+_______________:2 #portion of @RG ID and PU fields indicating flow cell lane
