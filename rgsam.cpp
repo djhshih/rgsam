@@ -7,17 +7,11 @@
 #include <set>
 #include <map>
 
+#include "rgsam/fastq.hpp"
+
 using namespace std;
 
-
-struct fastq_entry {
-    /// read name
-    string qname;
-    /// read sequence
-    string seq;
-    /// read quality scores
-    string qual;
-};
+const char* platform = "illumina";
 
 struct sam_opt_field {
     char tag[2];
@@ -48,6 +42,9 @@ struct sam_opt_field {
     }
 };
 
+/**
+ * Create a read-group optional field entry.
+ */
 sam_opt_field read_group_field(const string& rg) {
     return sam_opt_field("RG", 'Z', rg);
 }
@@ -90,55 +87,10 @@ struct raw_sam_entry {
 
 const size_t n_sam_core_fields = 11;
 const char sam_delim = '\t';
-const char* platform = "illumina";
 
 /**
- * Natural string comparison, account for numbers within a string.
- * This is different from lexigraphical comparison (e.g. std::string::compare).
- * Taken from https://github.com/samtools/samtools/blob/develop/bam_sort.c#L13
+ * Find the n-th occurence of a character after offset in a string.
  */
-int strnum_cmp(const char *_a, const char *_b) {
-    const unsigned char *a = (const unsigned char*)_a, *b = (const unsigned char*)_b;
-    const unsigned char *pa = a, *pb = b;
-    while (*pa && *pb) {
-        if (isdigit(*pa) && isdigit(*pb)) {
-            while (*pa == '0') ++pa;
-            while (*pb == '0') ++pb;
-            while (isdigit(*pa) && isdigit(*pb) && *pa == *pb) ++pa, ++pb;
-            if (isdigit(*pa) && isdigit(*pb)) {
-                int i = 0;
-                while (isdigit(pa[i]) && isdigit(pb[i])) ++i;
-                return isdigit(pa[i])? 1 : isdigit(pb[i])? -1 : (int)*pa - (int)*pb;
-            } else if (isdigit(*pa)) return 1;
-            else if (isdigit(*pb)) return -1;
-            else if (pa - a != pb - b) return pa - a < pb - b? 1 : -1;
-        } else {
-            if (*pa != *pb) return (int)*pa - (int)*pb;
-            ++pa; ++pb;
-        }
-    }
-    return *pa? 1 : *pb? -1 : 0;
-}
-
-/**
- * Compare two read names by lexical or natural order.
- */
-int compare_qnames(const string& a, const string& b, bool natural) {
-    size_t a_end = a.length();
-    size_t b_end = b.length();
-    if (a.substr(a_end - 2) == "/1") {
-        a_end -= 2;
-    }
-    if (b.substr(b_end - 2) == "/2") {
-        b_end -= 2;
-    }
-    
-    if (natural) {
-        return strnum_cmp(a.substr(0, a_end).c_str(), b.substr(0, b_end).c_str());
-    }
-    return a.substr(0, a_end).compare(b.substr(0, b_end));
-}
-
 size_t find_in_string(const string& x, char c, size_t pos, size_t n) {
     for (size_t i = 0; i < n; ++i) {
         pos = x.find(c, pos + 1);
@@ -147,6 +99,9 @@ size_t find_in_string(const string& x, char c, size_t pos, size_t n) {
     return pos;
 }
 
+/**
+ * Parse optional fields from a string.
+ */
 void parse_opts(const string& x, list<sam_opt_field>& opts) {
     size_t pos = 0;
     while (true) {
@@ -203,6 +158,9 @@ struct tag_match
     char tag[2];
 };
 
+/**
+ * Replace an optional field.
+ */
 void replace_opt_field(list<sam_opt_field>& opts, const sam_opt_field& x) {
     opts.remove_if(tag_match(x.tag));
     opts.push_back(x);
@@ -230,42 +188,18 @@ string infer_read_group_illumina18(const string& qname) {
     return flowcell + '_' + lane;
 }
 
-/** 
- * Read one fastq entry from file.
- *
- * Assume that each sequence and quality score entry `r1.fq` and `r2.fq` is single-line.
+/**
+ * Get the read name from the string of the SAM core fields.
  */
-bool read_fastq_entry(istream& f, fastq_entry& x) {
-    getline(f, x.qname);
-    if (x.qname.empty()) return false;
-    
-    getline(f, x.seq);
-
-    string marker;
-    getline(f, marker);
-    if (marker != "+") {
-        throw runtime_error("fastq entry is malformed");
-    }
-
-    getline(f, x.qual);
-    
-    return true;
-}
-
 string get_qname_from_sam_core(const string& core) {
     return core.substr(0, core.find(sam_delim));
 }
 
-/** 
- * Write one fastq entry to file.
+/**
+ * Read read groups from a SAM header file.
+ *
+ * Each line begins with `@RG`.
  */
-void write_fastq_entry(ostream& f, const fastq_entry& x) {
-    f << x.qname << endl;
-    f << x.seq << endl;
-    f << '+' << endl;
-    f << x.qual << endl;
-}
-
 bool read_read_groups(ifstream& f, map<string, string>& rgs) {
     while(true) {
         string line;
@@ -287,13 +221,22 @@ bool read_read_groups(ifstream& f, map<string, string>& rgs) {
     return !rgs.empty();
 }
 
+/**
+ * Write read groups into a SAM header file.
+ */
 void write_read_groups(ostream& f, const map<string, string>& rgs) {
     for (map<string, string>::const_iterator it = rgs.begin(); it != rgs.end(); ++it) {
         f << it->second << endl;
     }
 }
 
-void write_read_groups(ostream& f, const set<string> rgs, char* sample, char* library) {
+/**
+ * Write read groups into a SAM header file.
+ *
+ * @param rgs  raw read-group value strings.
+ */
+void write_read_groups(ostream& f, const set<string> rgs, const char* sample, 
+        const char* library, const char*platform) {
     for (set<string>::const_iterator it = rgs.begin(); it != rgs.end(); ++it) {
         f   << "@RG" << sam_delim
             << "ID:" << *it << sam_delim
@@ -308,6 +251,7 @@ void collect_rg_from_sam(char* in_fname, char* sample, char* library, char* out_
     // collect read-groups
     set<string> rgs;
     ifstream sam_f(in_fname);
+    if (!sam_f.is_open()) throw runtime_error("Error: input SAM file could not be opened.");
     while (true) {
         string line;
         getline(sam_f, line);
@@ -327,7 +271,8 @@ void collect_rg_from_sam(char* in_fname, char* sample, char* library, char* out_
 
     // write all read groups
     ofstream rg_f(out_rg_fname);
-    write_read_groups(rg_f, rgs, sample, library);
+    if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
+    write_read_groups(rg_f, rgs, sample, library, platform);
     rg_f.close();
 }
 
@@ -335,9 +280,10 @@ void collect_rg_from_fq(char* in_fname, char* sample, char* library, char* out_r
     // collect read-groups
     set<string> rgs;
     ifstream fq_f(in_fname);
+    if (!fq_f.is_open()) throw runtime_error("Error: input FASTQ file could not be opened.");
     while (true) {
-        fastq_entry x;
-        if (!read_fastq_entry(fq_f, x)) break;
+        fastq::entry x;
+        if (!fastq::read_entry(fq_f, x)) break;
     
         // infer read-group
         string rg = infer_read_group_illumina18(x.qname);
@@ -347,18 +293,22 @@ void collect_rg_from_fq(char* in_fname, char* sample, char* library, char* out_r
 
     // write all read groups
     ofstream rg_f(out_rg_fname);
-    write_read_groups(rg_f, rgs, sample, library);
+    if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
+    write_read_groups(rg_f, rgs, sample, library, platform);
     rg_f.close();
 }
 
 void tag_sam_with_rg(char* in_fname, char* rg_fname, char* out_sam_fname) {
     ifstream rg_f(rg_fname);
+    if (!rg_f.is_open()) throw runtime_error("Error: input read group file could not be opened.");
     map<string, string> rgs;
     read_read_groups(rg_f, rgs);
     rg_f.close();
 
     ifstream in_f(in_fname);
+    if (!in_f.is_open()) throw runtime_error("Error: input SAM file could not be opened.");
     ofstream out_f(out_sam_fname);
+    if (!out_f.is_open()) throw runtime_error("Error: output SAM file could not be opened.");
 
     string line;
 
@@ -409,7 +359,7 @@ void tag_sam_with_rg(char* in_fname, char* rg_fname, char* out_sam_fname) {
 
 
 /**
- * Utility programs
+ * Utility programs.
  *
  * collect    collect read-group information from SAM file
  * collectfq  collect read-group information from FASTQ file
