@@ -13,14 +13,20 @@ check: rgsam.cpp
 	$(CXX) -coverage -O0 $? -o tmp/check
 	! tmp/check
 	! tmp/check fly
+	# test formats
+	tmp/check formats
 	# test collect
-	tmp/check collect data/illumina-1.8.sam sample1 library1 tmp/illumina-1.8.sam.rg.txt
+	tmp/check collect illumina-1.8 data/illumina-1.8.sam sample1 library1 tmp/illumina-1.8.sam.rg.txt
 	diff data/ans/illumina-1.8.sam.rg.txt tmp/illumina-1.8.sam.rg.txt
 	# test collectfq
-	tmp/check collectfq data/illumina-1.8.fq sample1 library1 tmp/illumina-1.8.fq.rg.txt
+	tmp/check collectfq illumina-1.0 data/illumina-1.0.fq sample1 library1 tmp/illumina-1.0.fq.rg.txt
+	diff data/ans/illumina-1.0.fq.rg.txt tmp/illumina-1.0.fq.rg.txt
+	tmp/check collectfq illumina-1.8 data/illumina-1.8.fq sample1 library1 tmp/illumina-1.8.fq.rg.txt
 	diff data/ans/illumina-1.8.fq.rg.txt tmp/illumina-1.8.fq.rg.txt
+	tmp/check collectfq broad-1.0 data/broad-1.0.fq sample1 library1 tmp/broad-1.0.fq.rg.txt
+	diff data/ans/broad-1.0.fq.rg.txt tmp/broad-1.0.fq.rg.txt
 	# test tag
-	tmp/check tag data/illumina-1.8.sam data/ans/illumina-1.8.sam.rg.txt tmp/illumina-1.8.rg.sam
+	tmp/check tag illumina-1.8 data/illumina-1.8.sam data/ans/illumina-1.8.sam.rg.txt tmp/illumina-1.8.rg.sam
 	diff data/ans/illumina-1.8.rg.sam tmp/illumina-1.8.rg.sam
 
 coverage: check
