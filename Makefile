@@ -42,7 +42,8 @@ test: check
 	
 
 install: bin/rgsam
-	install bin/rgsam $(DESTDIR)/bin
+	mkdir -p $(DESTDIR)/bin/
+	install bin/rgsam $(DESTDIR)/bin/
 
 clean:
 	rm -f bin/rgsam
