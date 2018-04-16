@@ -15,7 +15,7 @@ commands:
   qnames     list supported read name formats
 ```
 
-Read-group identifier (ID) and platform unit (PU) are inferred from read
+Read-group identifier (`ID`) and platform unit (`PU`) are inferred from read
 names according to supported read name formats:
 
 ```{yaml}
@@ -30,13 +30,13 @@ broad-1.0:
     example: @H0164ALXX140820:2:1101:10003:23460
 ```
 
-Platform (PL) is assumed to be `illumina`.
+Platform (`PL`) is assumed to be `illumina`.
 
-Sample (SM) and library identifier (LB) may be inferred from input file name.
+Sample (`SM`) and library identifier (`LB`) may be inferred from input file name.
 
 Files with reads from more than one sample or library are *not* supported.
 
-To split BAM or SAM files containing proper `@RG` header and reads tagged
+To split BAM or SAM files containing proper `@RG` header lines and reads tagged
 with read-group field (e.g. `RG:Z:H1`), use instead:
 
 ```{bash}
