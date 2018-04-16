@@ -15,6 +15,7 @@
 
 using namespace std;
 
+const char* rgsam_version = "0.1";
 const char* platform = "illumina";
 
 namespace file_format {
@@ -236,6 +237,7 @@ int main(int argc, char* argv[]) {
         cerr << "  split      split SAM or FASTQ file based on read-group" << endl;
         cerr << "  tag        tag reads in SAM file with read-group field" << endl;
         cout << "  qnames     list supported read name formats" << endl;
+        cout << "  version    print version" << endl;
         return 1;
     }
 
@@ -438,6 +440,10 @@ int main(int argc, char* argv[]) {
              << "broad-1.0:" << endl
              << "    format: @{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}" << endl
              << "    example: @H0164ALXX140820:2:1101:10003:23460" << endl;
+
+    } else if (strcmp(argv[0], "version") == 0) {
+
+        cout << rgsam_version << endl;
 
     } else {
 

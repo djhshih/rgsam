@@ -21,6 +21,7 @@ commands:
   split      split SAM or FASTQ file based on read-group
   tag        tag reads in SAM file with read-group field
   qnames     list supported read name formats
+  version    print version
 ```
 
 Read-group identifier (`ID`) and platform unit (`PU`) are inferred from read
