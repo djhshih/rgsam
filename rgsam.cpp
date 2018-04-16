@@ -7,13 +7,22 @@
 #include <set>
 #include <map>
 
+#include "rgsam/arg.hpp"
 #include "rgsam/fastq.hpp"
 #include "rgsam/sam.hpp"
 #include "rgsam/string.hpp"
+#include "rgsam/file.hpp"
 
 using namespace std;
 
 const char* platform = "illumina";
+
+namespace file_format {
+    enum Format {
+        SAM,
+        FASTQ
+    };
+}
 
 /**
  * Infer read-group based on flowcell id and lane id,
@@ -98,7 +107,6 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
     // collect read-groups
     set<string> rgs;
     ifstream sam_f(in_fname);
-    if (!sam_f.is_open()) throw runtime_error("Error: input SAM file could not be opened.");
     while (true) {
         string line;
         getline(sam_f, line);
@@ -119,7 +127,6 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
 
     // write all read groups
     ofstream rg_f(out_rg_fname);
-    if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
     sam::write_read_groups(rg_f, rgs, sample, library, platform);
     rg_f << "@CO\t" << "QF:" << format << endl;
     rg_f.close();
@@ -129,7 +136,6 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
     // collect read-groups
     set<string> rgs;
     ifstream fq_f(in_fname);
-    if (!fq_f.is_open()) throw runtime_error("Error: input FASTQ file could not be opened.");
     while (true) {
         fastq::entry x;
         if (!fastq::read_entry(fq_f, x)) break;
@@ -143,7 +149,6 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
 
     // write all read groups
     ofstream rg_f(out_rg_fname);
-    if (!rg_f.is_open()) throw runtime_error("Error: output read group file could not be opened.");
     sam::write_read_groups(rg_f, rgs, sample, library, platform);
     rg_f << "@CO\t" << "QF:" << format << endl;
     rg_f.close();
@@ -151,15 +156,12 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
 
 void tag_sam_with_rg(const char* format, const char* in_fname, const char* rg_fname, const char* out_sam_fname) {
     ifstream rg_f(rg_fname);
-    if (!rg_f.is_open()) throw runtime_error("Error: input read group file could not be opened.");
     map<string, string> rgs;
     sam::read_read_groups(rg_f, rgs);
     rg_f.close();
 
     ifstream in_f(in_fname);
-    if (!in_f.is_open()) throw runtime_error("Error: input SAM file could not be opened.");
     ofstream out_f(out_sam_fname);
-    if (!out_f.is_open()) throw runtime_error("Error: output SAM file could not be opened.");
 
     string line;
 
@@ -210,15 +212,8 @@ void tag_sam_with_rg(const char* format, const char* in_fname, const char* rg_fn
     out_f.close();
 }
 
-
 /**
  * Utility programs.
- *
- * collect    collect read-group information from SAM file
- * collectfq  collect read-group information from FASTQ file
- * tag        add read-group field to reads
- * split      split SAM file based on read-group
- * splitfq    split FASTQ file based on read-group
  *
  * Read-groups identifier (ID) and platform unit (PU) are inferred from read 
  * names according to Illumina's read name format.
@@ -232,63 +227,207 @@ void tag_sam_with_rg(const char* format, const char* in_fname, const char* rg_fn
  */
 int main(int argc, char* argv[]) {
 
-    int nargs = argc - 1;
+    argc -= (argc > 0); argv += (argc > 0);  // skip program name if present
 
-    if (nargs < 1) {
-        cerr << "usage: rgsam collect <format> <in.sam> <sample> <library> <rg.txt>" << endl;
-        cout << "       rgsam collectfq <format> <in.fq> <sample> <library> <rg.txt>" << endl;
-        cout << "       rgsam tag <format> <in.sam> <rg.txt> <out.sam>" << endl;
-        cout << "       rgsam split <format> <in.sam> <sample> <library>" << endl;
-        cout << "       rgsam splitfq <format> <in.fq> <sample> <library>" << endl;
-        cout << "       rgsam formats" << endl;
+    if (argc < 1) {
+        cerr << "usage: rgsam [command]" << endl << endl;
+        cerr << "commands:" << endl;
+        cerr << "  collect    collect read-group information from SAM or FASTQ file" << endl;
+        cerr << "  split      split SAM or FASTQ file based on read-group" << endl;
+        cerr << "  tag        tag reads in SAM file with read-group field" << endl;
+        cout << "  qnames     list supported read name formats" << endl;
         return 1;
     }
 
-    if (strcmp(argv[1], "collect") == 0) {
+    if (strcmp(argv[0], "collect") == 0) {
 
-        char* format = argv[2];
-        char* in_fname = argv[3];
-        char* sample = argv[4];
-        char* library = argv[5];
-        char* out_rg_fname = argv[6];
-        collect_rg_from_sam(format, in_fname, sample, library, out_rg_fname);
+        --argc; ++argv;  // skip command
 
-    } else if (strcmp(argv[1], "collectfq") == 0) {
+        enum optionIndex { UNKNOWN, HELP, INPUT, OUTPUT, FORMAT, QNFORMAT, SAMPLE, LIBRARY, PLATFORM };
+        const option::Descriptor usage[] =
+        {
+            { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+            { INPUT, 0, "i", "input", Arg::InFile, "  --input  SAM file" },
+            { OUTPUT, 0, "o", "output", Arg::OutFile, "  --output  read-group header file" },
+            { FORMAT, 0, "f", "format", Arg::Some, "  --format  input file formal" },
+            { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
+            { SAMPLE, 0, "s", "sample", Arg::Some, "  --sample  sample name" },
+            { LIBRARY, 0, "l", "library", Arg::Some, "  --library  library name" },
+            //{ PLATFORM, 0, "p", "plaform", Arg::Some, "  --platform  sequencing platform" },
+            { HELP, 0, "h", "help", Arg::None, "  --help  print usage and exit" },
+            { 0, 0, 0, 0, 0, 0 }
+        };
 
-        char* format = argv[2];
-        char* in_fname = argv[3];
-        char* sample = argv[4];
-        char* library = argv[5];
-        char* out_rg_fname = argv[6];
-        collect_rg_from_fq(format, in_fname, sample, library, out_rg_fname);
+        option::Stats stats(usage, argc, argv);
+        option::Option options[stats.options_max], buffer[stats.buffer_max];
+        option::Parser parse(usage, argc, argv, options, buffer);
 
-    } else if (strcmp(argv[1], "tag") == 0) {
+        if (parse.error()) return 1;
 
-        char* format = argv[2];
-        char* in_fname = argv[3];
-        char* rg_fname = argv[4];
-        char* out_sam_fname = argv[5];
-        tag_sam_with_rg(format, in_fname, rg_fname, out_sam_fname);
+        if (argc == 0) {
+            option::printUsage(cerr, usage);
+            return 1;
+        }
 
-    } else if (strcmp(argv[1], "split") == 0) {
+        if (options[HELP]) {
+            option::printUsage(cerr, usage);
+            return 0;
+        }
 
-        char* format = argv[2];
-        char* in_fname = argv[3];
-        char* sample = argv[4];
-        char* library = argv[5];
+        const char* qnformat;
+        if (options[QNFORMAT].arg == NULL) {
+            cerr << "Warning: read name format is not specified; assume `illumina-1.8`" << endl;
+            qnformat = "illumina-1.8"; } else {
+            qnformat = options[QNFORMAT].arg;
+        }
 
-        cerr << "Unimplemented command: " << argv[1] << endl;
+        const char* input;
+        if (options[INPUT].arg == NULL) {
+            cerr << "Info: reading from stdin" << endl;
+            input = "/dev/stdin";
+        } else {
+            input = options[INPUT].arg;
+        }
 
-    } else if (strcmp(argv[1], "splitfq") == 0) {
+        const char* output;
+        if (options[OUTPUT].arg == NULL) {
+            cerr << "Info: writing to stdout" << endl;
+            output = "/dev/stdout";
+        } else {
+            output = options[OUTPUT].arg;
+        }
 
-        char* format = argv[2];
-        char* in_fname = argv[3];
-        char* sample = argv[4];
-        char* library = argv[5];
+        const char* sample = options[SAMPLE].arg;
+        if (sample == NULL) {
+            if (options[INPUT].arg == NULL) {
+                cerr << "Error: sample name must be specified if input name is not specified" << endl;
+                return 1;
+            }
+            string stem;
+            get_file_stem(options[INPUT].arg, stem);
+            sample = stem.c_str();
+        }
+        
+        const char* library = options[LIBRARY].arg;
+        if (library == NULL) {
+            library = sample;
+        }
 
-        cerr << "Unimplemented command: " << argv[1] << endl;
+        enum file_format::Format format = file_format::SAM;
+        if (options[FORMAT].arg == NULL) {
+            // attempt to infer format from input file name
+            if (options[INPUT].arg == NULL) {
+                cerr << "Warning: input file name and format are not specified; assume `SAM`" << endl;
+            } else {
+                string ext;
+                get_file_ext(options[INPUT].arg, ext);
+                to_lower(ext);
+                if (ext.empty()) {
+                    cerr << "Warning: input file format could not be inferred; assume `SAM`" << endl;
+                } else if (ext == "fastq" || ext == "fq") {
+                    format = file_format::FASTQ;
+                } else if (ext == "sam") {
+                    format = file_format::SAM;
+                } else {
+                    cerr << "Error: unsupported input file format `" << ext << '`' << endl;
+                }
+            }
+        } else {
+            string format_str = options[FORMAT].arg;
+            if (format_str == "fastq" || format_str == "fq") {
+                format = file_format::FASTQ;
+            } else if (format_str == "sam") {
+                format = file_format::SAM;
+            } else {
+                cerr << "Error: unsupported input file format `" << format_str << '`' << endl;
+            }
+        }
 
-    } else if (strcmp(argv[1], "formats") == 0) {
+        switch (format) {
+            case file_format::SAM:
+                collect_rg_from_sam(qnformat, input, sample, library, output);
+                break;
+            case file_format::FASTQ:
+                collect_rg_from_fq(qnformat, input, sample, library, output);
+                break;
+        }
+
+    } else if (strcmp(argv[0], "split") == 0) {
+
+        --argc; ++argv;  // skip command
+
+        // TODO this command would be more practical if compression is
+        // possible on output file
+
+        cerr << "Unimplemented command: " << argv[0] << endl;
+
+    } else if (strcmp(argv[0], "tag") == 0) {
+
+        --argc; ++argv;  // skip command
+
+        enum optionIndex { UNKNOWN, HELP, INPUT, INPUT_RG, OUTPUT, QNFORMAT };
+        const option::Descriptor usage[] =
+        {
+            { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+            { INPUT, 0, "i", "input", Arg::InFile, "  --input  input SAM file" },
+            { INPUT_RG, 0, "r", "rg", Arg::InFile, "  --rg  input read-group header file" },
+            { OUTPUT, 0, "o", "output", Arg::OutFile, "  --output  output SAM file" },
+            { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
+            { HELP, 0, "h", "help", Arg::None, "  --help  print usage and exit" },
+            { 0, 0, 0, 0, 0, 0 }
+        };
+
+        option::Stats stats(usage, argc, argv);
+        option::Option options[stats.options_max], buffer[stats.buffer_max];
+        option::Parser parse(usage, argc, argv, options, buffer);
+
+        if (parse.error()) return 1;
+
+        if (argc == 0) {
+            option::printUsage(cerr, usage);
+            return 1;
+        }
+
+        if (options[HELP]) {
+            option::printUsage(cerr, usage);
+            return 0;
+        }
+
+        const char* qnformat;
+        if (options[QNFORMAT].arg == NULL) {
+            cerr << "Warning: read name format is not specified; assume `illumina-1.8`" << endl;
+            qnformat = "illumina-1.8"; } else {
+            qnformat = options[QNFORMAT].arg;
+        }
+
+        const char* input;
+        if (options[INPUT].arg == NULL) {
+            cerr << "Info: reading from stdin" << endl;
+            input = "/dev/stdin";
+        } else {
+            input = options[INPUT].arg;
+        }
+
+        const char* input_rg = options[INPUT_RG].arg;
+        if (input_rg == NULL) {
+            cerr << "Error: read-group header file is required and can be"
+                    "acquired by running `rgsam collect`" << endl;
+            return 1;
+        }
+
+        const char* output;
+        if (options[OUTPUT].arg == NULL) {
+            cerr << "Info: writing to stdout" << endl;
+            output = "/dev/stdout";
+        } else {
+            output = options[OUTPUT].arg;
+        }
+
+        tag_sam_with_rg(qnformat, input, input_rg, output);
+
+    } else if (strcmp(argv[0], "qnames") == 0) {
+
+        --argc; ++argv;  // skip command
 
         cout << "illumina-1.0: @HWUSI-EAS100R:6:73:941:1973#0/1" << endl;
         cout << "illumina-1.8: @EAS139:136:FC706VJ:2:2104:15343:197393" << endl;
@@ -296,7 +435,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        cerr << "Unsupported command: " << argv[1] << endl;
+        cerr << "Unsupported command: " << argv[0] << endl;
         return 1;
 
     }
