@@ -1,0 +1,6 @@
+.*.swp
+*.exe
+*.gcov
+*.gcno
+*.gcda
+tmp
