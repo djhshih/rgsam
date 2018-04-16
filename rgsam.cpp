@@ -215,7 +215,7 @@ void tag_sam_with_rg(const char* format, const char* in_fname, const char* rg_fn
 /**
  * Utility programs.
  *
- * Read-groups identifier (ID) and platform unit (PU) are inferred from read 
+ * Read-group identifier (ID) and platform unit (PU) are inferred from read 
  * names according to Illumina's read name format.
  * Platform (PL) is assumed to be "illumina".
  * Sample (SM) and library identifier (LB) must be given.
@@ -429,9 +429,15 @@ int main(int argc, char* argv[]) {
 
         --argc; ++argv;  // skip command
 
-        cout << "illumina-1.0: @HWUSI-EAS100R:6:73:941:1973#0/1" << endl;
-        cout << "illumina-1.8: @EAS139:136:FC706VJ:2:2104:15343:197393" << endl;
-        cout << "broad-1.0: @H0164ALXX140820:2:1101:10003:23460" << endl;
+        cout << "illumina-1.0:" << endl
+             << "    format: @{flowcell}-{instrument}:{lane}:{tile}:{x}:{y}#{sample}/{pair}" << endl
+             << "    example: @HWUSI-EAS100R:6:73:941:1973#0/1" << endl
+             << "illumina-1.8:" << endl
+             << "    format: @{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}" << endl
+             << "    exaample: @EAS139:136:FC706VJ:2:2104:15343:197393" << endl 
+             << "broad-1.0:" << endl
+             << "    format: @{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}" << endl
+             << "    example: @H0164ALXX140820:2:1101:10003:23460" << endl;
 
     } else {
 
