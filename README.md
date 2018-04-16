@@ -5,6 +5,14 @@
 
 Infer read-group information from read names in SAM or FASTQ file.
 
+# Installation
+
+```{bash}
+make
+```
+
+# Usage
+
 ```{bash}
 usage: rgsam [command]
 
@@ -43,7 +51,7 @@ with read-group field (e.g. `RG:Z:H1`), use instead:
 samtools view -r <rg_id> <in.bam>
 ```
 
-## Example workflow
+## Example
 
 Suppose we have a BAM file with no read-group data, then we first infer
 the set of read-groups by
@@ -56,9 +64,11 @@ Now we can tag the reads with read-group information (any existing read-group
 tags will be replaced).
 
 ```{bash}
-samtools view -h sample.bam | rgsam tag -r rg.txt > sample.rg.bam
+samtools view -h sample.bam | 
+  rgsam tag -r rg.txt |
+  samtools view -b - > sample.rg.bam
 ```
 
-Note that we use the `-h` flag for `samtools` to ensure that other header data
+Note that we use the `-h` flag of `samtools view` to ensure that other header data
 are preserved (any existing `@RG` will be replaced).
 
