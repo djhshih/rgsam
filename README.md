@@ -9,6 +9,7 @@ Infer read-group information from read names in SAM or FASTQ file.
 
 ```{bash}
 make
+make install
 ```
 
 # Usage
