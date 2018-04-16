@@ -286,7 +286,7 @@ void collect_rg_from_fq(char* in_fname, char* sample, char* library, char* out_r
         if (!fastq::read_entry(fq_f, x)) break;
     
         // infer read-group
-        string rg = infer_read_group_illumina18(x.qname);
+        string rg = infer_read_group_illumina18(x.qname.substr(1));
         rgs.insert(rg);
     }
     fq_f.close();
