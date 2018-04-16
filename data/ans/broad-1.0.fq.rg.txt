@@ -1,0 +1,2 @@
+@RG	ID:H0164_1	PU:H0164_1	SM:sample1	LB:library1	PL:illumina
+@RG	ID:H0164_2	PU:H0164_2	SM:sample1	LB:library1	PL:illumina
