@@ -59,6 +59,19 @@ namespace file_format {
     }
 }
 
+template <class ptr>
+struct files {
+    typedef typename::map<string, ptr> map_t;
+
+    map_t rep;
+
+    ~files() {
+        for (typename map_t::iterator it = rep.begin(); it != rep.end(); ++it) {
+            delete it->second;
+        }
+    }
+};
+
 /**
  * Infer read-group based on flowcell id and lane id,
  * assuming Illumina v1.0 read name format.
@@ -169,7 +182,7 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
 
 void split_sam_by_rg(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
     // collect read-groups and write reads to separate files
-    map<string, ofstream> outs;
+    files<ofstream*> outs;
     set<string> rgs;
     vector<string> header_lines;
     ifstream sam_f(in_fname);
@@ -203,15 +216,15 @@ void split_sam_by_rg(const char* format, const char* in_fname, const char* sampl
                 new_sam_fname = new_sam_fname + in_fname + "." + rg;
             }
             cerr << "Info: create output " << new_sam_fname << endl;
-            outs[rg] = ofstream(new_sam_fname.c_str());
+            outs.rep[rg] = new ofstream(new_sam_fname.c_str());
             // write header lines
             for (vector<string>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
-                outs[rg] << *it << endl;
+                *outs.rep[rg] << *it << endl;
             }
-            outs[rg] << "@CO\t" << "QF:" << format << endl;
+            *outs.rep[rg] << "@CO\t" << "QF:" << format << endl;
         }
         
-        sam::write_raw_entry(outs[rg], x);
+        sam::write_raw_entry(*outs.rep[rg], x);
     }
     sam_f.close();
 
@@ -246,7 +259,7 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
 
 void split_fq_by_rg(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
     // collect read-groups and write reads to separate files
-    map<string, ofstream> outs;
+    files<ofstream*> outs;
     set<string> rgs;
     ifstream fq_f(in_fname);
     while (true) {
@@ -267,10 +280,10 @@ void split_fq_by_rg(const char* format, const char* in_fname, const char* sample
                 new_fq_fname = new_fq_fname + in_fname + "." + rg;
             }
             cerr << "Info: create output " << new_fq_fname << endl;
-            outs[rg] = ofstream(new_fq_fname);
+            outs.rep[rg] = new ofstream(new_fq_fname.c_str());
         }
         
-        fastq::write_entry(outs[rg], x);
+        fastq::write_entry(*outs.rep[rg], x);
     }
     fq_f.close();
 
