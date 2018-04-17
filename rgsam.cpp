@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
         }
 
         const char* input;
-        if (options[INPUT].arg == NULL) {
+        if (options[INPUT].arg == NULL || strcmp(options[INPUT].arg, "-") == 0) {
             cerr << "Info: reading from stdin" << endl;
             input = "/dev/stdin";
         } else {
@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
         }
 
         const char* output;
-        if (options[OUTPUT].arg == NULL) {
+        if (options[OUTPUT].arg == NULL || strcmp(options[OUTPUT].arg, "-") == 0) {
             cerr << "Info: writing to stdout" << endl;
             output = "/dev/stdout";
         } else {

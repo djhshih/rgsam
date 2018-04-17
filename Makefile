@@ -29,6 +29,8 @@ check: rgsam.cpp
 	diff data/ans/illumina-1.8.fq.rg.txt tmp/illumina-1.8.fq.rg.txt
 	cat data/illumina-1.8.fq | tmp/check collect -f fastq -s sample1 -l library1 > tmp/illumina-1.8.fq.rg.txt
 	diff data/ans/illumina-1.8.fq.rg.txt tmp/illumina-1.8.fq.rg.txt
+	cat data/illumina-1.8.fq | tmp/check collect -i - -o - -f fastq -s sample1 -l library1 > tmp/illumina-1.8.fq.rg.txt
+	diff data/ans/illumina-1.8.fq.rg.txt tmp/illumina-1.8.fq.rg.txt
 	tmp/check collect -q broad-1.0 -i data/broad-1.0.fq -s sample1 -l library1 -o tmp/broad-1.0.fq.rg.txt
 	diff data/ans/broad-1.0.fq.rg.txt tmp/broad-1.0.fq.rg.txt
 	# test tag
