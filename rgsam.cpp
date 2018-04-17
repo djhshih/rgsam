@@ -481,7 +481,7 @@ int main(int argc, char* argv[]) {
         enum optionIndex { UNKNOWN, HELP, INPUT, OUTPUT, FORMAT, QNFORMAT, SAMPLE, LIBRARY, PLATFORM };
         const option::Descriptor usage[] =
         {
-          { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+          { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam split [options]\n\noptions:" },
           { INPUT, 0, "i", "input", Arg::InFile,     "  --input     SAM file" },
           { OUTPUT, 0, "o", "output", Arg::OutFile,  "  --output    read-group header file" },
           { FORMAT, 0, "f", "format", Arg::Some,     "  --format    input file format [sam, fastq]" },
@@ -572,7 +572,7 @@ int main(int argc, char* argv[]) {
         enum optionIndex { UNKNOWN, HELP, INPUT, INPUT_RG, OUTPUT, QNFORMAT };
         const option::Descriptor usage[] =
         {
-            { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+            { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam tag [options]\n\noptions:" },
             { INPUT, 0, "i", "input", Arg::InFile,     "  --input     input SAM file" },
             { INPUT_RG, 0, "r", "rg", Arg::InFile,     "  --rg        input read-group header file" },
             { OUTPUT, 0, "o", "output", Arg::OutFile,  "  --output    output SAM file" },
