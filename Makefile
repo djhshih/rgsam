@@ -36,6 +36,17 @@ check: rgsam.cpp
 	# test tag
 	tmp/check tag -q illumina-1.8 -i data/illumina-1.8.sam -r data/ans/illumina-1.8.sam.rg.txt -o tmp/illumina-1.8.rg.sam
 	diff data/ans/illumina-1.8.rg.sam tmp/illumina-1.8.rg.sam
+	# test split on fastq files
+	cp data/illumina-1.8.fq tmp/illumina-1.8.fq
+	tmp/check split -i tmp/illumina-1.8.fq
+	diff data/ans/illumina-1.8.fq.FC706VJ_2 tmp/illumina-1.8.fq.FC706VJ_2
+	diff data/ans/illumina-1.8.fq.FC706VJ_3 tmp/illumina-1.8.fq.FC706VJ_3
+	# test split on sam files
+	cp data/illumina-1.8.sam tmp/illumina-1.8.sam
+	tmp/check split -i tmp/illumina-1.8.sam
+	diff data/ans/illumina-1.8.sam.H1ZB7AAXX_1 tmp/illumina-1.8.sam.H1ZB7AAXX_1
+	diff data/ans/illumina-1.8.sam.H2YH7AAXX_1 tmp/illumina-1.8.sam.H2YH7AAXX_1
+	diff data/ans/illumina-1.8.sam.H2YH7AAXX_2 tmp/illumina-1.8.sam.H2YH7AAXX_2
 
 coverage: check
 	gcov rgsam.cpp

@@ -6,6 +6,7 @@
 #include <list>
 #include <set>
 #include <map>
+#include <vector>
 
 #include "rgsam/arg.hpp"
 #include "rgsam/fastq.hpp"
@@ -23,6 +24,39 @@ namespace file_format {
         SAM,
         FASTQ
     };
+
+    Format get(const char* format, const char* fname) {
+        Format f = file_format::SAM;
+        if (format == NULL) {
+            // attempt to infer format from input file name
+            if (fname == NULL) {
+                cerr << "Warning: input file name and format are not specified; assume `SAM`" << endl;
+            } else {
+                string ext;
+                get_file_ext(fname, ext);
+                to_lower(ext);
+                if (ext.empty()) {
+                    cerr << "Warning: input file format could not be inferred; assume `SAM`" << endl;
+                } else if (ext == "fastq" || ext == "fq") {
+                    f = file_format::FASTQ;
+                } else if (ext == "sam") {
+                    f = file_format::SAM;
+                } else {
+                    cerr << "Error: unsupported input file format `" << ext << '`' << endl;
+                }
+            }
+        } else {
+            string format_str = format;
+            if (format_str == "fastq" || format_str == "fq") {
+                f = file_format::FASTQ;
+            } else if (format_str == "sam") {
+                f = file_format::SAM;
+            } else {
+                cerr << "Error: unsupported input file format `" << format_str << '`' << endl;
+            }
+        }
+        return f;
+    }
 }
 
 /**
@@ -133,6 +167,61 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
     rg_f.close();
 }
 
+void split_sam_by_rg(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
+    // collect read-groups and write reads to separate files
+    map<string, ofstream> outs;
+    set<string> rgs;
+    vector<string> header_lines;
+    ifstream sam_f(in_fname);
+    while (true) {
+        string line;
+        getline(sam_f, line);
+
+        if (line.empty()) break;
+
+        // skip header lines
+        if (line[0] == '@') {
+            if (line.find("@RG") != 0) {
+                header_lines.push_back(line);
+            }
+            continue;
+        }
+
+        // infer read-group
+        sam::raw_entry x; 
+        if (!sam::extract_raw_entry(line, x)) break;
+        string rg;
+        infer_read_group(format, sam::get_qname_from_core(x.core), rg);
+
+        if (rgs.find(rg) == rgs.end()) {
+            // new read-group: create new output file
+            rgs.insert(rg);
+            string new_sam_fname;
+            if (strcmp(in_fname, "/dev/stdin") == 0) {
+                new_sam_fname = new_sam_fname + sample + "_" + library + "_" + rg + ".sam";
+            } else {
+                new_sam_fname = new_sam_fname + in_fname + "." + rg;
+            }
+            cerr << "Info: create output " << new_sam_fname << endl;
+            outs[rg] = ofstream(new_sam_fname);
+            // write header lines
+            for (vector<string>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
+                outs[rg] << *it << endl;
+            }
+            outs[rg] << "@CO\t" << "QF:" << format << endl;
+        }
+        
+        sam::write_raw_entry(outs[rg], x);
+    }
+    sam_f.close();
+
+    // write all read groups
+    ofstream rg_f(out_rg_fname);
+    sam::write_read_groups(rg_f, rgs, sample, library, platform);
+    rg_f << "@CO\t" << "QF:" << format << endl;
+    rg_f.close();
+}
+
 void collect_rg_from_fq(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
     // collect read-groups
     set<string> rgs;
@@ -145,6 +234,43 @@ void collect_rg_from_fq(const char* format, const char* in_fname, const char* sa
         string rg;
         infer_read_group(format, x.qname.substr(1), rg);
         rgs.insert(rg);
+    }
+    fq_f.close();
+
+    // write all read groups
+    ofstream rg_f(out_rg_fname);
+    sam::write_read_groups(rg_f, rgs, sample, library, platform);
+    rg_f << "@CO\t" << "QF:" << format << endl;
+    rg_f.close();
+}
+
+void split_fq_by_rg(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
+    // collect read-groups and write reads to separate files
+    map<string, ofstream> outs;
+    set<string> rgs;
+    ifstream fq_f(in_fname);
+    while (true) {
+        fastq::entry x;
+        if (!fastq::read_entry(fq_f, x)) break;
+
+        // infer read-group
+        string rg;
+        infer_read_group(format, x.qname.substr(1), rg);
+
+        if (rgs.find(rg) == rgs.end()) {
+            // new read-group: create new output file
+            rgs.insert(rg);
+            string new_fq_fname;
+            if (strcmp(in_fname, "/dev/stdin") == 0) {
+                new_fq_fname = new_fq_fname + sample + "_" + library + "_" + rg + ".fq";
+            } else {
+                new_fq_fname = new_fq_fname + in_fname + "." + rg;
+            }
+            cerr << "Info: create output " << new_fq_fname << endl;
+            outs[rg] = ofstream(new_fq_fname);
+        }
+        
+        fastq::write_entry(outs[rg], x);
     }
     fq_f.close();
 
@@ -322,36 +448,7 @@ int main(int argc, char* argv[]) {
             platform = options[PLATFORM].arg;
         }
 
-        enum file_format::Format format = file_format::SAM;
-        if (options[FORMAT].arg == NULL) {
-            // attempt to infer format from input file name
-            if (options[INPUT].arg == NULL) {
-                cerr << "Warning: input file name and format are not specified; assume `SAM`" << endl;
-            } else {
-                string ext;
-                get_file_ext(options[INPUT].arg, ext);
-                to_lower(ext);
-                if (ext.empty()) {
-                    cerr << "Warning: input file format could not be inferred; assume `SAM`" << endl;
-                } else if (ext == "fastq" || ext == "fq") {
-                    format = file_format::FASTQ;
-                } else if (ext == "sam") {
-                    format = file_format::SAM;
-                } else {
-                    cerr << "Error: unsupported input file format `" << ext << '`' << endl;
-                }
-            }
-        } else {
-            string format_str = options[FORMAT].arg;
-            if (format_str == "fastq" || format_str == "fq") {
-                format = file_format::FASTQ;
-            } else if (format_str == "sam") {
-                format = file_format::SAM;
-            } else {
-                cerr << "Error: unsupported input file format `" << format_str << '`' << endl;
-            }
-        }
-
+        enum file_format::Format format = file_format::get(options[FORMAT].arg, options[INPUT].arg);
         switch (format) {
             case file_format::SAM:
                 collect_rg_from_sam(qnformat, input, sample, library, platform, output);
@@ -367,8 +464,93 @@ int main(int argc, char* argv[]) {
 
         // TODO this command would be more practical if compression is
         // possible on output file
+        
+        enum optionIndex { UNKNOWN, HELP, INPUT, OUTPUT, FORMAT, QNFORMAT, SAMPLE, LIBRARY, PLATFORM };
+        const option::Descriptor usage[] =
+        {
+          { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+          { INPUT, 0, "i", "input", Arg::InFile,     "  --input     SAM file" },
+          { OUTPUT, 0, "o", "output", Arg::OutFile,  "  --output    read-group header file" },
+          { FORMAT, 0, "f", "format", Arg::Some,     "  --format    input file format [sam, fastq]" },
+          { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
+          { SAMPLE, 0, "s", "sample", Arg::Some,     "  --sample    sample name" },
+          { LIBRARY, 0, "l", "library", Arg::Some,   "  --library   library name" },
+          { PLATFORM, 0, "p", "plaform", Arg::Some,  "  --platform  sequencing platform [default: illumina]" },
+          { HELP, 0, "h", "help", Arg::None,         "  --help      print usage and exit" },
+          { 0, 0, 0, 0, 0, 0 }
+        };
 
-        cerr << "Unimplemented command: " << argv[0] << endl;
+        option::Stats stats(usage, argc, argv);
+        option::Option options[stats.options_max], buffer[stats.buffer_max];
+        option::Parser parse(usage, argc, argv, options, buffer);
+
+        if (parse.error()) return 1;
+
+        if (argc == 0) {
+            option::printUsage(cerr, usage);
+            return 1;
+        }
+
+        if (options[HELP]) {
+            option::printUsage(cerr, usage);
+            return 0;
+        }
+
+        const char* qnformat;
+        if (options[QNFORMAT].arg == NULL) {
+            cerr << "Warning: read name format is not specified; assume `illumina-1.8`" << endl;
+            qnformat = "illumina-1.8"; } else {
+            qnformat = options[QNFORMAT].arg;
+        }
+
+        const char* input;
+        if (options[INPUT].arg == NULL || strcmp(options[INPUT].arg, "-") == 0) {
+            cerr << "Info: reading from stdin" << endl;
+            input = "/dev/stdin";
+        } else {
+            input = options[INPUT].arg;
+        }
+
+        const char* output;
+        if (options[OUTPUT].arg == NULL || strcmp(options[OUTPUT].arg, "-") == 0) {
+            cerr << "Info: writing to stdout" << endl;
+            output = "/dev/stdout";
+        } else {
+            output = options[OUTPUT].arg;
+        }
+
+        const char* sample = options[SAMPLE].arg;
+        if (sample == NULL) {
+            if (options[INPUT].arg == NULL) {
+                cerr << "Error: sample name must be specified if input name is not specified" << endl;
+                return 1;
+            }
+            string stem;
+            get_file_stem(options[INPUT].arg, stem);
+            sample = stem.c_str();
+        }
+        
+        const char* library = options[LIBRARY].arg;
+        if (library == NULL) {
+            library = sample;
+        }
+
+        const char* platform;
+        if (options[PLATFORM].arg == NULL) {
+            platform = "illumina";
+        } else {
+            platform = options[PLATFORM].arg;
+        }
+
+        enum file_format::Format format = file_format::get(options[FORMAT].arg, options[INPUT].arg);
+        switch (format) {
+            case file_format::SAM:
+                split_sam_by_rg(qnformat, input, sample, library, platform, output);
+                break;
+            case file_format::FASTQ:
+                split_fq_by_rg(qnformat, input, sample, library, platform, output);
+                break;
+        }
 
     } else if (strcmp(argv[0], "tag") == 0) {
 
