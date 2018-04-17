@@ -203,7 +203,7 @@ void split_sam_by_rg(const char* format, const char* in_fname, const char* sampl
                 new_sam_fname = new_sam_fname + in_fname + "." + rg;
             }
             cerr << "Info: create output " << new_sam_fname << endl;
-            outs[rg] = ofstream(new_sam_fname);
+            outs[rg] = ofstream(new_sam_fname.c_str());
             // write header lines
             for (vector<string>::const_iterator it = header_lines.begin(); it != header_lines.end(); ++it) {
                 outs[rg] << *it << endl;
