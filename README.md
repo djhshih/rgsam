@@ -28,16 +28,21 @@ commands:
 Read-group identifier (`ID`) and platform unit (`PU`) are inferred from read
 names according to supported read name formats:
 
-```{yaml}
-illumina-1.0:
-    format: @{flowcell}-{instrument}:{lane}:{tile}:{x}:{y}#{sample}/{pair}
-    example: @HWUSI-EAS100R:6:73:941:1973#0/1
-illumina-1.8:
-    format: @{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}
-    exaample: @EAS139:136:FC706VJ:2:2104:15343:197393
-broad-1.0:
-    format: @{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}
-    example: @H0164ALXX140820:2:1101:10003:23460
+```{json}
+{
+  "illumina-1.0": {
+    "format": "@{flowcell}-{instrument}:{lane}:{tile}:{x}:{y}#{sample}/{pair}",
+    "example": "@HWUSI-EAS100R:6:73:941:1973#0/1"
+  },
+  "illumina-1.8": {
+    "format": "@{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}",
+    "exaample": "@EAS139:136:FC706VJ:2:2104:15343:197393"
+  },
+  "broad-1.0": {
+    "format": "@{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}",
+    "example": "@H0164ALXX140820:2:1101:10003:23460"
+  }
+}
 ```
 
 Platform (`PL`) defaults to `illumina`.

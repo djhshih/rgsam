@@ -248,16 +248,16 @@ int main(int argc, char* argv[]) {
         enum optionIndex { UNKNOWN, HELP, INPUT, OUTPUT, FORMAT, QNFORMAT, SAMPLE, LIBRARY, PLATFORM };
         const option::Descriptor usage[] =
         {
-            { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
-            { INPUT, 0, "i", "input", Arg::InFile, "  --input  SAM file" },
-            { OUTPUT, 0, "o", "output", Arg::OutFile, "  --output  read-group header file" },
-            { FORMAT, 0, "f", "format", Arg::Some, "  --format  input file formal" },
-            { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
-            { SAMPLE, 0, "s", "sample", Arg::Some, "  --sample  sample name" },
-            { LIBRARY, 0, "l", "library", Arg::Some, "  --library  library name" },
-            { PLATFORM, 0, "p", "plaform", Arg::Some, "  --platform  sequencing platform [default: illumina]" },
-            { HELP, 0, "h", "help", Arg::None, "  --help  print usage and exit" },
-            { 0, 0, 0, 0, 0, 0 }
+          { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
+          { INPUT, 0, "i", "input", Arg::InFile,     "  --input     SAM file" },
+          { OUTPUT, 0, "o", "output", Arg::OutFile,  "  --output    read-group header file" },
+          { FORMAT, 0, "f", "format", Arg::Some,     "  --format    input file format [sam, fastq]" },
+          { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
+          { SAMPLE, 0, "s", "sample", Arg::Some,     "  --sample    sample name" },
+          { LIBRARY, 0, "l", "library", Arg::Some,   "  --library   library name" },
+          { PLATFORM, 0, "p", "plaform", Arg::Some,  "  --platform  sequencing platform [default: illumina]" },
+          { HELP, 0, "h", "help", Arg::None,         "  --help      print usage and exit" },
+          { 0, 0, 0, 0, 0, 0 }
         };
 
         option::Stats stats(usage, argc, argv);
@@ -378,11 +378,11 @@ int main(int argc, char* argv[]) {
         const option::Descriptor usage[] =
         {
             { UNKNOWN, 0, "", "", Arg::None, "usage: rgsam collect [options]\n\noptions:" },
-            { INPUT, 0, "i", "input", Arg::InFile, "  --input  input SAM file" },
-            { INPUT_RG, 0, "r", "rg", Arg::InFile, "  --rg  input read-group header file" },
-            { OUTPUT, 0, "o", "output", Arg::OutFile, "  --output  output SAM file" },
+            { INPUT, 0, "i", "input", Arg::InFile,     "  --input     input SAM file" },
+            { INPUT_RG, 0, "r", "rg", Arg::InFile,     "  --rg        input read-group header file" },
+            { OUTPUT, 0, "o", "output", Arg::OutFile,  "  --output    output SAM file" },
             { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
-            { HELP, 0, "h", "help", Arg::None, "  --help  print usage and exit" },
+            { HELP, 0, "h", "help", Arg::None,         "  --help      print usage and exit" },
             { 0, 0, 0, 0, 0, 0 }
         };
 
@@ -438,15 +438,20 @@ int main(int argc, char* argv[]) {
 
         --argc; ++argv;  // skip command
 
-        cout << "illumina-1.0:" << endl
-             << "    format: @{flowcell}-{instrument}:{lane}:{tile}:{x}:{y}#{sample}/{pair}" << endl
-             << "    example: @HWUSI-EAS100R:6:73:941:1973#0/1" << endl
-             << "illumina-1.8:" << endl
-             << "    format: @{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}" << endl
-             << "    exaample: @EAS139:136:FC706VJ:2:2104:15343:197393" << endl 
-             << "broad-1.0:" << endl
-             << "    format: @{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}" << endl
-             << "    example: @H0164ALXX140820:2:1101:10003:23460" << endl;
+        cout << "{" << endl
+             << "  \"illumina-1.0\": {" << endl
+             << "    \"format\": \"@{flowcell}-{instrument}:{lane}:{tile}:{x}:{y}#{sample}/{pair}\"," << endl
+             << "    \"example\": \"@HWUSI-EAS100R:6:73:941:1973#0/1\"" << endl
+             << "  }," << endl
+             << "  \"illumina-1.8\": {" << endl
+             << "    \"format\": \"@{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}\"," << endl
+             << "    \"exaample\": \"@EAS139:136:FC706VJ:2:2104:15343:197393\"" << endl 
+             << "  }," << endl
+             << "  \"broad-1.0\": {" << endl
+             << "    \"format\": \"@{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}\"," << endl
+             << "    \"example\": \"@H0164ALXX140820:2:1101:10003:23460\"" << endl
+             << "  }" << endl
+             << "}" << endl;
 
     } else if (strcmp(argv[0], "version") == 0) {
 
