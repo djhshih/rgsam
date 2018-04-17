@@ -16,7 +16,7 @@
 using namespace std;
 
 const char* rgsam_version = "0.1";
-const char* platform = "illumina";
+
 
 namespace file_format {
     enum Format {
@@ -104,7 +104,7 @@ void infer_read_group(const char* format, const string& qname, string& rg) {
 }
 
 
-void collect_rg_from_sam(const char* format, const char* in_fname, const char* sample, const char* library, const char* out_rg_fname) {
+void collect_rg_from_sam(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
     // collect read-groups
     set<string> rgs;
     ifstream sam_f(in_fname);
@@ -133,7 +133,7 @@ void collect_rg_from_sam(const char* format, const char* in_fname, const char* s
     rg_f.close();
 }
 
-void collect_rg_from_fq(const char* format, const char* in_fname, const char* sample, const char* library, const char* out_rg_fname) {
+void collect_rg_from_fq(const char* format, const char* in_fname, const char* sample, const char* library, const char* platform, const char* out_rg_fname) {
     // collect read-groups
     set<string> rgs;
     ifstream fq_f(in_fname);
@@ -255,7 +255,7 @@ int main(int argc, char* argv[]) {
             { QNFORMAT, 0, "q", "qnformat", Arg::Some, "  --qnformat  read name format" },
             { SAMPLE, 0, "s", "sample", Arg::Some, "  --sample  sample name" },
             { LIBRARY, 0, "l", "library", Arg::Some, "  --library  library name" },
-            //{ PLATFORM, 0, "p", "plaform", Arg::Some, "  --platform  sequencing platform" },
+            { PLATFORM, 0, "p", "plaform", Arg::Some, "  --platform  sequencing platform [default: illumina]" },
             { HELP, 0, "h", "help", Arg::None, "  --help  print usage and exit" },
             { 0, 0, 0, 0, 0, 0 }
         };
@@ -315,6 +315,13 @@ int main(int argc, char* argv[]) {
             library = sample;
         }
 
+        const char* platform;
+        if (options[PLATFORM].arg == NULL) {
+            platform = "illumina";
+        } else {
+            platform = options[PLATFORM].arg;
+        }
+
         enum file_format::Format format = file_format::SAM;
         if (options[FORMAT].arg == NULL) {
             // attempt to infer format from input file name
@@ -347,10 +354,10 @@ int main(int argc, char* argv[]) {
 
         switch (format) {
             case file_format::SAM:
-                collect_rg_from_sam(qnformat, input, sample, library, output);
+                collect_rg_from_sam(qnformat, input, sample, library, platform, output);
                 break;
             case file_format::FASTQ:
-                collect_rg_from_fq(qnformat, input, sample, library, output);
+                collect_rg_from_fq(qnformat, input, sample, library, platform, output);
                 break;
         }
 

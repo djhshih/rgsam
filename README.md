@@ -40,7 +40,7 @@ broad-1.0:
     example: @H0164ALXX140820:2:1101:10003:23460
 ```
 
-Platform (`PL`) is assumed to be `illumina`.
+Platform (`PL`) defaults to `illumina`.
 
 Sample (`SM`) and library identifier (`LB`) may be inferred from input file name.
 
