@@ -36,7 +36,7 @@ names according to supported read name formats:
   },
   "illumina-1.8": {
     "format": "@{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}",
-    "exaample": "@EAS139:136:FC706VJ:2:2104:15343:197393"
+    "example": "@EAS139:136:FC706VJ:2:2104:15343:197393"
   },
   "broad-1.0": {
     "format": "@{flowcell,5}:{barcode}:{lane}:{tile}:{x}:{y}",
