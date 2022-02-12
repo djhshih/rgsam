@@ -35,7 +35,7 @@ names according to supported read name formats:
     "example": "@HWUSI-EAS100R:6:73:941:1973#0/1"
   },
   "illumina-1.8": {
-    "format": "@{flowcell}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}",
+    "format": "@{instrument}:{run}:{flowcell}:{lane}:{tile}:{x}:{y}",
     "example": "@EAS139:136:FC706VJ:2:2104:15343:197393"
   },
   "broad-1.0": {
